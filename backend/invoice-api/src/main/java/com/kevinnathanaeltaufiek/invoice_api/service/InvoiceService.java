@@ -6,6 +6,7 @@ import com.kevinnathanaeltaufiek.invoice_api.model.InvoiceItem;
 import com.kevinnathanaeltaufiek.invoice_api.repository.InvoiceRepository;
 import com.kevinnathanaeltaufiek.invoice_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class InvoiceService {
@@ -23,22 +25,33 @@ public class InvoiceService {
     private final UserRepository userRepository;
 
     public List<InvoiceResponse> getAll(UUID userId, String status, LocalDate startDate, LocalDate endDate) {
-        return invoiceRepository.findByFilter(userId, status, startDate, endDate)
+        log.debug("InvoiceService.getAll - userId={}, status={}, startDate={}, endDate={}", userId, status, startDate, endDate);
+        List<InvoiceResponse> result = invoiceRepository.findByFilter(userId, status, startDate, endDate)
             .stream()
             .map(this::toResponse)
             .toList();
+        log.debug("InvoiceService.getAll - userId={} found {} invoice(s)", userId, result.size());
+        return result;
     }
 
     public InvoiceResponse getById(UUID id, UUID userId) {
+        log.debug("InvoiceService.getById - invoiceId={}, userId={}", id, userId);
         var invoice = invoiceRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new IllegalArgumentException("Invoice tidak ditemukan"));
+            .orElseThrow(() -> {
+                log.warn("InvoiceService.getById - invoice not found: id={}, userId={}", id, userId);
+                return new IllegalArgumentException("Invoice tidak ditemukan");
+            });
         return toResponse(invoice);
     }
 
     @Transactional
     public InvoiceResponse create(InvoiceRequest request, UUID userId) {
+        log.debug("InvoiceService.create - userId={}, client={}, items={}", userId, request.getClientName(), request.getItems().size());
         var user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User tidak ditemukan"));
+            .orElseThrow(() -> {
+                log.warn("InvoiceService.create - user not found: userId={}", userId);
+                return new IllegalArgumentException("User tidak ditemukan");
+            });
 
         var invoice = new Invoice();
         invoice.setUser(user);
@@ -58,13 +71,19 @@ public class InvoiceService {
             invoice.getItems().add(item);
         }
 
-        return toResponse(invoiceRepository.save(invoice));
+        InvoiceResponse response = toResponse(invoiceRepository.save(invoice));
+        log.info("InvoiceService.create - invoice created: id={}, invoiceNumber={}, userId={}", response.getId(), response.getInvoiceNumber(), userId);
+        return response;
     }
 
     @Transactional
     public InvoiceResponse update(UUID id, InvoiceRequest request, UUID userId) {
+        log.debug("InvoiceService.update - invoiceId={}, userId={}", id, userId);
         var invoice = invoiceRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new IllegalArgumentException("Invoice tidak ditemukan"));
+            .orElseThrow(() -> {
+                log.warn("InvoiceService.update - invoice not found: id={}, userId={}", id, userId);
+                return new IllegalArgumentException("Invoice tidak ditemukan");
+            });
 
         invoice.setClientName(request.getClientName());
         invoice.setClientEmail(request.getClientEmail());
@@ -82,25 +101,40 @@ public class InvoiceService {
             invoice.getItems().add(item);
         }
 
-        return toResponse(invoiceRepository.save(invoice));
+        InvoiceResponse response = toResponse(invoiceRepository.save(invoice));
+        log.info("InvoiceService.update - invoice updated: id={}, invoiceNumber={}, userId={}", id, response.getInvoiceNumber(), userId);
+        return response;
     }
 
     @Transactional
     public void delete(UUID id, UUID userId) {
+        log.debug("InvoiceService.delete - invoiceId={}, userId={}", id, userId);
         var invoice = invoiceRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new IllegalArgumentException("Invoice tidak ditemukan"));
+            .orElseThrow(() -> {
+                log.warn("InvoiceService.delete - invoice not found: id={}, userId={}", id, userId);
+                return new IllegalArgumentException("Invoice tidak ditemukan");
+            });
         invoiceRepository.delete(invoice);
+        log.info("InvoiceService.delete - invoice deleted: id={}, invoiceNumber={}, userId={}", id, invoice.getInvoiceNumber(), userId);
     }
 
     @Transactional
     public InvoiceResponse updateStatus(UUID id, String status, UUID userId) {
+        log.debug("InvoiceService.updateStatus - invoiceId={}, newStatus={}, userId={}", id, status, userId);
         var invoice = invoiceRepository.findByIdAndUserId(id, userId)
-            .orElseThrow(() -> new IllegalArgumentException("Invoice tidak ditemukan"));
+            .orElseThrow(() -> {
+                log.warn("InvoiceService.updateStatus - invoice not found: id={}, userId={}", id, userId);
+                return new IllegalArgumentException("Invoice tidak ditemukan");
+            });
+        String previousStatus = invoice.getStatus();
         invoice.setStatus(status);
-        return toResponse(invoiceRepository.save(invoice));
+        InvoiceResponse response = toResponse(invoiceRepository.save(invoice));
+        log.info("InvoiceService.updateStatus - invoiceId={} status changed: {} -> {}, userId={}", id, previousStatus, status, userId);
+        return response;
     }
 
     public SummaryResponse getSummary(UUID userId) {
+        log.debug("InvoiceService.getSummary - userId={}", userId);
         var invoices = invoiceRepository.findByUserId(userId);
 
         long totalCount = invoices.size();
@@ -118,7 +152,9 @@ public class InvoiceService {
             .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new SummaryResponse(totalCount, paidCount, overdueCount, totalAmount, paidAmount);
+        SummaryResponse summary = new SummaryResponse(totalCount, paidCount, overdueCount, totalAmount, paidAmount);
+        log.info("InvoiceService.getSummary - userId={} total={}, paid={}, overdue={}, totalAmount={}", userId, totalCount, paidCount, overdueCount, totalAmount);
+        return summary;
     }
 
     private String generateInvoiceNumber(UUID userId, LocalDate issueDate) {

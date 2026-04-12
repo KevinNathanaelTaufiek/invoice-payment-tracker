@@ -7,6 +7,7 @@ import com.kevinnathanaeltaufiek.invoice_api.repository.UserRepository;
 import com.kevinnathanaeltaufiek.invoice_api.service.InvoiceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/invoices")
 @RequiredArgsConstructor
@@ -34,12 +36,19 @@ public class InvoiceController {
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
         UUID userId = resolveUserId(userDetails);
-        return ResponseEntity.ok(invoiceService.getAll(userId, status, startDate, endDate));
+        log.debug("GET /api/invoices - userId={}, status={}, startDate={}, endDate={}", userId, status, startDate, endDate);
+        List<InvoiceResponse> result = invoiceService.getAll(userId, status, startDate, endDate);
+        log.info("GET /api/invoices - userId={} retrieved {} invoice(s)", userId, result.size());
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/summary")
     public ResponseEntity<SummaryResponse> getSummary(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(invoiceService.getSummary(resolveUserId(userDetails)));
+        UUID userId = resolveUserId(userDetails);
+        log.debug("GET /api/invoices/summary - userId={}", userId);
+        SummaryResponse summary = invoiceService.getSummary(userId);
+        log.info("GET /api/invoices/summary - userId={} total={}, paid={}, overdue={}", userId, summary.getTotalCount(), summary.getPaidCount(), summary.getOverdueCount());
+        return ResponseEntity.ok(summary);
     }
 
     @GetMapping("/{id}")
@@ -47,7 +56,11 @@ public class InvoiceController {
         @PathVariable UUID id,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        return ResponseEntity.ok(invoiceService.getById(id, resolveUserId(userDetails)));
+        UUID userId = resolveUserId(userDetails);
+        log.debug("GET /api/invoices/{} - userId={}", id, userId);
+        InvoiceResponse response = invoiceService.getById(id, userId);
+        log.info("GET /api/invoices/{} - userId={} retrieved invoiceNumber={}", id, userId, response.getInvoiceNumber());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
@@ -55,7 +68,11 @@ public class InvoiceController {
         @Valid @RequestBody InvoiceRequest request,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        return ResponseEntity.ok(invoiceService.create(request, resolveUserId(userDetails)));
+        UUID userId = resolveUserId(userDetails);
+        log.info("POST /api/invoices - userId={} creating invoice for client={}", userId, request.getClientName());
+        InvoiceResponse response = invoiceService.create(request, userId);
+        log.info("POST /api/invoices - userId={} created invoiceNumber={}, invoiceId={}", userId, response.getInvoiceNumber(), response.getId());
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
@@ -64,7 +81,11 @@ public class InvoiceController {
         @Valid @RequestBody InvoiceRequest request,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        return ResponseEntity.ok(invoiceService.update(id, request, resolveUserId(userDetails)));
+        UUID userId = resolveUserId(userDetails);
+        log.info("PUT /api/invoices/{} - userId={} updating invoice", id, userId);
+        InvoiceResponse response = invoiceService.update(id, request, userId);
+        log.info("PUT /api/invoices/{} - userId={} updated invoiceNumber={}", id, userId, response.getInvoiceNumber());
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
@@ -72,7 +93,10 @@ public class InvoiceController {
         @PathVariable UUID id,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        invoiceService.delete(id, resolveUserId(userDetails));
+        UUID userId = resolveUserId(userDetails);
+        log.info("DELETE /api/invoices/{} - userId={} deleting invoice", id, userId);
+        invoiceService.delete(id, userId);
+        log.info("DELETE /api/invoices/{} - userId={} invoice deleted", id, userId);
         return ResponseEntity.noContent().build();
     }
 
@@ -82,8 +106,12 @@ public class InvoiceController {
         @RequestBody Map<String, String> body,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
+        UUID userId = resolveUserId(userDetails);
         String status = body.get("status");
-        return ResponseEntity.ok(invoiceService.updateStatus(id, status, resolveUserId(userDetails)));
+        log.info("PATCH /api/invoices/{}/status - userId={} updating status to={}", id, userId, status);
+        InvoiceResponse response = invoiceService.updateStatus(id, status, userId);
+        log.info("PATCH /api/invoices/{}/status - userId={} status updated to={} on invoiceNumber={}", id, userId, status, response.getInvoiceNumber());
+        return ResponseEntity.ok(response);
     }
 
     private UUID resolveUserId(UserDetails userDetails) {

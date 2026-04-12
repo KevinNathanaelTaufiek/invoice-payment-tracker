@@ -16,13 +16,13 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
 
     List<Invoice> findByUserIdAndStatus(UUID userId, String status);
 
-    @Query("""
-        SELECT i FROM Invoice i
-        WHERE i.user.id = :userId
+    @Query(value = """
+        SELECT * FROM invoices i
+        WHERE i.user_id = :userId
         AND (:status IS NULL OR i.status = :status)
-        AND (:startDate IS NULL OR i.issueDate >= :startDate)
-        AND (:endDate IS NULL OR i.issueDate <= :endDate)
-        """)
+        AND (CAST(:startDate AS date) IS NULL OR i.issue_date >= CAST(:startDate AS date))
+        AND (CAST(:endDate AS date) IS NULL OR i.issue_date <= CAST(:endDate AS date))
+        """, nativeQuery = true)
     List<Invoice> findByFilter(
         @Param("userId") UUID userId,
         @Param("status") String status,

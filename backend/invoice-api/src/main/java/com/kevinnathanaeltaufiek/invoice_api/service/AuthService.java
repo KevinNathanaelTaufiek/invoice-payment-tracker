@@ -7,11 +7,13 @@ import com.kevinnathanaeltaufiek.invoice_api.model.User;
 import com.kevinnathanaeltaufiek.invoice_api.repository.UserRepository;
 import com.kevinnathanaeltaufiek.invoice_api.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -22,7 +24,9 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest request) {
+        log.debug("AuthService.register - checking email={}", request.getEmail());
         if (userRepository.existsByEmail(request.getEmail())) {
+            log.warn("AuthService.register - email already registered: {}", request.getEmail());
             throw new IllegalArgumentException("Email sudah terdaftar");
         }
 
@@ -31,19 +35,25 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         userRepository.save(user);
+        log.info("AuthService.register - new user registered: id={}, email={}", user.getId(), user.getEmail());
 
         String token = jwtUtil.generateToken(user.getEmail());
         return buildResponse(token, user);
     }
 
     public AuthResponse login(LoginRequest request) {
+        log.debug("AuthService.login - authenticating email={}", request.getEmail());
         authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
         var user = userRepository.findByEmail(request.getEmail())
-            .orElseThrow(() -> new IllegalArgumentException("User tidak ditemukan"));
+            .orElseThrow(() -> {
+                log.warn("AuthService.login - user not found after auth passed: email={}", request.getEmail());
+                return new IllegalArgumentException("User tidak ditemukan");
+            });
 
+        log.info("AuthService.login - login success: id={}, email={}", user.getId(), user.getEmail());
         String token = jwtUtil.generateToken(user.getEmail());
         return buildResponse(token, user);
     }
