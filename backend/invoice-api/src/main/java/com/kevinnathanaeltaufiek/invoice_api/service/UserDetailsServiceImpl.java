@@ -1,5 +1,6 @@
 package com.kevinnathanaeltaufiek.invoice_api.service;
 
+import com.kevinnathanaeltaufiek.invoice_api.model.AppUser;
 import com.kevinnathanaeltaufiek.invoice_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +20,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         log.debug("UserDetailsServiceImpl.loadUserByUsername - loading user for email={}", email);
-        var user = userRepository.findByEmail(email)
+        AppUser user = userRepository.findByEmail(email)
             .orElseThrow(() -> {
                 log.warn("UserDetailsServiceImpl.loadUserByUsername - user not found: email={}", email);
                 return new UsernameNotFoundException("User tidak ditemukan: " + email);

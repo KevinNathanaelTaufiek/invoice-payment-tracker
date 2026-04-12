@@ -3,7 +3,7 @@ package com.kevinnathanaeltaufiek.invoice_api.service;
 import com.kevinnathanaeltaufiek.invoice_api.dto.AuthResponse;
 import com.kevinnathanaeltaufiek.invoice_api.dto.LoginRequest;
 import com.kevinnathanaeltaufiek.invoice_api.dto.RegisterRequest;
-import com.kevinnathanaeltaufiek.invoice_api.model.User;
+import com.kevinnathanaeltaufiek.invoice_api.model.AppUser;
 import com.kevinnathanaeltaufiek.invoice_api.repository.UserRepository;
 import com.kevinnathanaeltaufiek.invoice_api.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class AuthService {
             throw new IllegalArgumentException("Email sudah terdaftar");
         }
 
-        var user = new User();
+        AppUser user = new AppUser();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -47,7 +47,7 @@ public class AuthService {
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
-        var user = userRepository.findByEmail(request.getEmail())
+        AppUser user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> {
                 log.warn("AuthService.login - user not found after auth passed: email={}", request.getEmail());
                 return new IllegalArgumentException("User tidak ditemukan");
@@ -58,7 +58,7 @@ public class AuthService {
         return buildResponse(token, user);
     }
 
-    private AuthResponse buildResponse(String token, User user) {
+    private AuthResponse buildResponse(String token, AppUser user) {
         return new AuthResponse(token, new AuthResponse.UserInfo(user.getId(), user.getName(), user.getEmail()));
     }
 }

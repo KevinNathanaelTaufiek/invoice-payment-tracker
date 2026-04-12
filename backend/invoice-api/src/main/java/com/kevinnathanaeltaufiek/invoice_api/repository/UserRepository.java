@@ -1,12 +1,12 @@
 package com.kevinnathanaeltaufiek.invoice_api.repository;
 
-import com.kevinnathanaeltaufiek.invoice_api.model.User;
+import com.kevinnathanaeltaufiek.invoice_api.model.AppUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public interface UserRepository extends JpaRepository<User, UUID> {
-    Optional<User> findByEmail(String email);
+public interface UserRepository extends JpaRepository<AppUser, UUID> {
+    Optional<AppUser> findByEmail(String email);
     boolean existsByEmail(String email);
 }
