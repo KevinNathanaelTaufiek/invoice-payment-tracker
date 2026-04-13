@@ -248,19 +248,20 @@ export default function InvoiceFormPage() {
             </div>
 
             {/* Column headers */}
-            <div className="grid grid-cols-12 gap-2 mb-2 px-1">
-              <div className="col-span-5 text-xs font-body font-medium text-slate-400 uppercase tracking-wider">Deskripsi</div>
-              <div className="col-span-2 text-xs font-body font-medium text-slate-400 uppercase tracking-wider">Qty</div>
-              <div className="col-span-3 text-xs font-body font-medium text-slate-400 uppercase tracking-wider">Harga Satuan</div>
-              <div className="col-span-2 text-xs font-body font-medium text-slate-400 uppercase tracking-wider text-right">Subtotal</div>
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <div className="flex-[5] text-xs font-body font-medium text-slate-400 uppercase tracking-wider">Deskripsi</div>
+              <div className="flex-[2] text-xs font-body font-medium text-slate-400 uppercase tracking-wider">Qty</div>
+              <div className="flex-[3] text-xs font-body font-medium text-slate-400 uppercase tracking-wider">Harga Satuan</div>
+              <div className="flex-[3] text-xs font-body font-medium text-slate-400 uppercase tracking-wider text-right">Subtotal</div>
+              <div className="w-8 flex-shrink-0" />
             </div>
 
             <div className="space-y-2">
               {form.items.map((item, index) => {
                 const subtotal = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
                 return (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-center group">
-                    <div className="col-span-5">
+                  <div key={index} className="flex items-center gap-2 group">
+                    <div className="flex-[5]">
                       <input
                         type="text"
                         value={item.description}
@@ -270,7 +271,7 @@ export default function InvoiceFormPage() {
                         className="w-full px-3 py-2.5 bg-cream-50 border border-cream-200 rounded-lg font-body text-sm text-navy-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition"
                       />
                     </div>
-                    <div className="col-span-2">
+                    <div className="flex-[2]">
                       <input
                         type="number"
                         value={item.quantity}
@@ -280,7 +281,7 @@ export default function InvoiceFormPage() {
                         className="w-full px-3 py-2.5 bg-cream-50 border border-cream-200 rounded-lg font-body text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition"
                       />
                     </div>
-                    <div className="col-span-3">
+                    <div className="flex-[3]">
                       <input
                         type="number"
                         value={item.unitPrice}
@@ -292,12 +293,12 @@ export default function InvoiceFormPage() {
                         className="w-full px-3 py-2.5 bg-cream-50 border border-cream-200 rounded-lg font-body text-sm text-navy-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition"
                       />
                     </div>
-                    <div className="col-span-1 text-right">
+                    <div className="flex-[3] text-right">
                       <span className="font-mono text-xs text-navy-700">
                         {subtotal > 0 ? formatRupiah(subtotal) : '—'}
                       </span>
                     </div>
-                    <div className="col-span-1 flex justify-end">
+                    <div className="w-8 flex-shrink-0 flex justify-end">
                       <button
                         type="button"
                         onClick={() => removeItem(index)}

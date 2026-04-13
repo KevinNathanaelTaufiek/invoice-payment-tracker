@@ -33,3 +33,15 @@ CREATE TABLE IF NOT EXISTS invoice_items (
     unit_price   DECIMAL(15, 2) NOT NULL,
     subtotal     DECIMAL(15, 2) GENERATED ALWAYS AS (quantity * unit_price) STORED
 );
+
+CREATE OR REPLACE VIEW invoice_summaries AS
+SELECT
+    i.user_id,
+    COUNT(DISTINCT i.id) AS total_count,
+    COUNT(DISTINCT CASE WHEN i.status = 'PAID' THEN i.id END) AS paid_count,
+    COUNT(DISTINCT CASE WHEN i.status = 'OVERDUE' THEN i.id END) AS overdue_count,
+    COALESCE(SUM(ii.unit_price * ii.quantity), 0) AS total_amount,
+    COALESCE(SUM(CASE WHEN i.status = 'PAID' THEN ii.unit_price * ii.quantity ELSE 0 END), 0) AS paid_amount
+FROM invoices i
+LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
+GROUP BY i.user_id;

@@ -164,19 +164,19 @@ export default function InvoiceDetailPage() {
           <h2 className="text-xs font-body font-medium text-slate-400 uppercase tracking-wider mb-4">Item Layanan</h2>
 
           <div className="space-y-0">
-            <div className="grid grid-cols-12 gap-4 pb-2 border-b border-cream-100 text-xs font-body font-medium text-slate-400 uppercase tracking-wider">
-              <div className="col-span-6">Deskripsi</div>
-              <div className="col-span-2 text-center">Qty</div>
-              <div className="col-span-2 text-right">Harga</div>
-              <div className="col-span-2 text-right">Subtotal</div>
+            <div className="grid grid-cols-12 gap-2 pb-2 border-b border-cream-100 text-xs font-body font-medium text-slate-400 uppercase tracking-wider">
+              <div className="col-span-5">Deskripsi</div>
+              <div className="col-span-1 text-center">Qty</div>
+              <div className="col-span-3 text-right">Harga</div>
+              <div className="col-span-3 text-right">Subtotal</div>
             </div>
 
             {invoice.items?.map((item, i) => (
-              <div key={i} className="grid grid-cols-12 gap-4 py-3 border-b border-cream-50 last:border-0">
-                <div className="col-span-6 font-body text-sm text-navy-900">{item.description}</div>
-                <div className="col-span-2 font-mono text-sm text-slate-500 text-center">{item.quantity}</div>
-                <div className="col-span-2 font-mono text-sm text-slate-500 text-right">{formatRupiah(item.unitPrice)}</div>
-                <div className="col-span-2 font-mono text-sm font-medium text-navy-900 text-right">{formatRupiah(item.subtotal)}</div>
+              <div key={i} className="grid grid-cols-12 gap-2 py-3 border-b border-cream-50 last:border-0">
+                <div className="col-span-5 font-body text-sm text-navy-900">{item.description}</div>
+                <div className="col-span-1 font-mono text-sm text-slate-500 text-center">{item.quantity}</div>
+                <div className="col-span-3 font-mono text-sm text-slate-500 text-right">{formatRupiah(item.unitPrice)}</div>
+                <div className="col-span-3 font-mono text-sm font-medium text-navy-900 text-right">{formatRupiah(item.subtotal)}</div>
               </div>
             ))}
           </div>

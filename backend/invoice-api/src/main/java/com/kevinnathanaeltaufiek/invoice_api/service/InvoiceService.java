@@ -3,8 +3,10 @@ package com.kevinnathanaeltaufiek.invoice_api.service;
 import com.kevinnathanaeltaufiek.invoice_api.dto.*;
 import com.kevinnathanaeltaufiek.invoice_api.model.Invoice;
 import com.kevinnathanaeltaufiek.invoice_api.model.InvoiceItem;
+import com.kevinnathanaeltaufiek.invoice_api.model.InvoiceSummary;
 import com.kevinnathanaeltaufiek.invoice_api.model.AppUser;
 import com.kevinnathanaeltaufiek.invoice_api.repository.InvoiceRepository;
+import com.kevinnathanaeltaufiek.invoice_api.repository.InvoiceSummaryRepository;
 import com.kevinnathanaeltaufiek.invoice_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
+    private final InvoiceSummaryRepository invoiceSummaryRepository;
     private final UserRepository userRepository;
 
     public List<InvoiceResponse> getAll(UUID userId, String status, LocalDate startDate, LocalDate endDate) {
@@ -129,24 +132,18 @@ public class InvoiceService {
 
     public SummaryResponse getSummary(UUID userId) {
         log.debug("InvoiceService.getSummary - userId={}", userId);
-        List<Invoice> invoices = invoiceRepository.findByUserId(userId);
-
-        long totalCount = invoices.size();
-        long paidCount = invoices.stream().filter(i -> "PAID".equals(i.getStatus())).count();
-        long overdueCount = invoices.stream().filter(i -> "OVERDUE".equals(i.getStatus())).count();
-
-        BigDecimal totalAmount = invoices.stream()
-            .flatMap(i -> i.getItems().stream())
-            .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal paidAmount = invoices.stream()
-            .filter(i -> "PAID".equals(i.getStatus()))
-            .flatMap(i -> i.getItems().stream())
-            .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return new SummaryResponse(totalCount, paidCount, overdueCount, totalAmount, paidAmount);
+        InvoiceSummary summary = invoiceSummaryRepository.findByUserId(userId)
+            .orElse(null);
+        if (summary == null) {
+            return new SummaryResponse(0L, 0L, 0L, BigDecimal.ZERO, BigDecimal.ZERO);
+        }
+        return new SummaryResponse(
+            summary.getTotalCount(),
+            summary.getPaidCount(),
+            summary.getOverdueCount(),
+            summary.getTotalAmount(),
+            summary.getPaidAmount()
+        );
     }
 
     private String generateInvoiceNumber(UUID userId, LocalDate issueDate) {

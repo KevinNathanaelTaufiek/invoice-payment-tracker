@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import SummaryCard from '../components/SummaryCard';
@@ -30,15 +30,16 @@ export default function InvoiceListPage() {
 
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const debounceRef = useRef(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (currentFilters) => {
     setLoading(true);
     setError('');
     try {
       const params = {};
-      if (filters.status) params.status = filters.status;
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
+      if (currentFilters.status) params.status = currentFilters.status;
+      if (currentFilters.startDate) params.startDate = currentFilters.startDate;
+      if (currentFilters.endDate) params.endDate = currentFilters.endDate;
 
       const [invRes, sumRes] = await Promise.all([
         getAll(params),
@@ -51,11 +52,15 @@ export default function InvoiceListPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchData(filters);
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [filters, fetchData]);
 
   const handleDelete = async (id) => {
     setDeleteConfirm(id);
@@ -67,7 +72,7 @@ export default function InvoiceListPage() {
     try {
       await remove(deleteConfirm);
       setDeleteConfirm(null);
-      fetchData();
+      fetchData(filters);
     } catch {
       alert('Gagal menghapus invoice.');
     } finally {

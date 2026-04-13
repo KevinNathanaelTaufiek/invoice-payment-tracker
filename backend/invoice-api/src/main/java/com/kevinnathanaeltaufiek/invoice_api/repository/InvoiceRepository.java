@@ -12,17 +12,14 @@ import java.util.UUID;
 
 public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
 
-    List<Invoice> findByUserId(UUID userId);
-
-    List<Invoice> findByUserIdAndStatus(UUID userId, String status);
-
-    @Query(value = """
-        SELECT * FROM invoices i
-        WHERE i.user_id = :userId
+    @Query("""
+        SELECT DISTINCT i FROM Invoice i
+        LEFT JOIN FETCH i.items
+        WHERE i.user.id = :userId
         AND (:status IS NULL OR i.status = :status)
-        AND (CAST(:startDate AS date) IS NULL OR i.issue_date >= CAST(:startDate AS date))
-        AND (CAST(:endDate AS date) IS NULL OR i.issue_date <= CAST(:endDate AS date))
-        """, nativeQuery = true)
+        AND (:startDate IS NULL OR i.issueDate >= :startDate)
+        AND (:endDate IS NULL OR i.issueDate <= :endDate)
+        """)
     List<Invoice> findByFilter(
         @Param("userId") UUID userId,
         @Param("status") String status,
@@ -30,7 +27,12 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
         @Param("endDate") LocalDate endDate
     );
 
-    Optional<Invoice> findByIdAndUserId(UUID id, UUID userId);
+    @Query("""
+        SELECT i FROM Invoice i
+        LEFT JOIN FETCH i.items
+        WHERE i.id = :id AND i.user.id = :userId
+        """)
+    Optional<Invoice> findByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
 
     @Query("""
         SELECT COUNT(i) FROM Invoice i
